@@ -16,7 +16,7 @@ module.exports = {
         publicPath: "/public/"
     },
     resolve: {
-        extensions: [".ts", ".js"],
+        extensions: [".tsx", ".ts", ".js"],
         modules: [
             __dirname,
             "node_modules"
@@ -30,9 +30,9 @@ module.exports = {
                 use: "source-map-loader"
             },
             {
-                test: /\.ts$/,
+                test: /\.tsx?$/,
+                use: 'ts-loader',
                 exclude: /node_modules/,
-                use: "awesome-typescript-loader",
             }
         ]
     },

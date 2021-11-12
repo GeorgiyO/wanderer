@@ -1,1 +1,5 @@
-console.time("Hello from nekogochan ts template");
+import {render} from "./View";
+
+render({
+    name: "пошел нахуй"
+});
