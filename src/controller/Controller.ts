@@ -8,6 +8,6 @@ export type Controller = {
 }
 
 export type ButtonInputInfo = {
-  bindActive(fn : () => void) : void
   bindDown(fn : () => void) : void
+  bindActive(fn : () => void) : void
 }

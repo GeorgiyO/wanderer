@@ -1,4 +1,4 @@
-import {call} from "../Fn";
+import {withArgs} from "../Fn";
 
 export type Subscribtion<E> = {
   unsubscribe : () => void;
@@ -37,6 +37,6 @@ export const Events = {
     subscribers.set(tag, new Set());
   },
   fire<E extends object>(tag : Tag<E>, event : E) : void {
-    subscribersOf(tag).forEach(call(event));
+    subscribersOf(tag).forEach(withArgs(event));
   }
 };

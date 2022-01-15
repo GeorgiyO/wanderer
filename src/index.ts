@@ -7,34 +7,31 @@ import {DickDisplay} from "./display/DickDisplay";
 import {Global} from "./model/Global";
 import {Events} from "./model/events/Events";
 import {DebugDrawEvent} from "./display/DebugDrawEvent";
-import {call} from "./model/Fn";
-import {Rect} from "./game/DickMazeGenerator";
+import {withArgs} from "./model/Fn";
+import {point} from "./model/Point";
 
 let i = 0;
 
-const width = 30;
-const height = 30;
+const width = 40;
+const height = 40;
 
-const game = new DickGame(width, height);
+const game = new DickGame(width, height, point(2, 0), point(width - 2, height - 1));
 const display = new DickDisplay(document.getElementById("mainCanvas") as HTMLCanvasElement, width, height);
 const controller : Controller = new DickController();
 
 let debugDrawOrder : (() => void)[] = [];
 
 Events.subscribe(DebugDrawEvent, ({x, y, width, height, color}) => {
-  console.log("debug draw");
   debugDrawOrder.push(() => display.drawRect(x, y, width, height, color));
 });
 
-controller.up.bindDown(() => {
+let act = () => {
   debugDrawOrder = [];
   game.update();
-});
+};
 
-let r = new Rect(0, 0, 3, 3, 0);
-r.debugDraw("black");
-let [a, b] = r.splitRandom();
-[a, b].forEach(r => r.debugDraw("#f00b"));
+controller.up.bindDown(act);
+controller.up.bindActive(act);
 
 const engine : Engine = new DickEngine(
   () => {
@@ -53,8 +50,11 @@ const engine : Engine = new DickEngine(
       if (type === Global.objectTypes.WALL) {
         display.drawPoint(x, y, "black");
       }
+      if (type === Global.objectTypes.EXIT) {
+        display.drawPoint(x, y, "red");
+      }
     });
-    debugDrawOrder.forEach(call());
+    debugDrawOrder.forEach(withArgs());
     display.render();
   },
   1000 / 60

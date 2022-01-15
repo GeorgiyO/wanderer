@@ -11,7 +11,7 @@ export class DickController implements Controller {
       return;
     }
 
-    btn.setActive(event.type == "keydown");
+    btn.set(event.type == "keydown");
   };
 
   findButton(key : string) {
@@ -30,7 +30,7 @@ export class DickController implements Controller {
   handleActiveInputs() : void {
     this.all.forEach(btn => {
       if (btn.active) {
-        btn.activeFn();
+        btn.downFn();
       }
     });
   }
@@ -45,22 +45,22 @@ export class DickController implements Controller {
 
 class DickInput implements ButtonInputInfo {
 
-  activeFn = () => {};
   downFn = () => {};
+  activeFn = () => {};
   active = false;
 
-  setActive(active : boolean) {
+  set(active : boolean) {
     if (active) {
-      this.downFn();
+      this.activeFn();
     }
     this.active = active;
   }
 
-  bindActive(fn : () => void) : void {
-    this.activeFn = fn;
-  }
-
   bindDown(fn : () => void) : void {
     this.downFn = fn;
+  }
+
+  bindActive(fn : () => void) : void {
+    this.activeFn = fn;
   }
 }

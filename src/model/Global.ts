@@ -4,6 +4,7 @@ type GlobalI = {
     readonly NONE : number
     readonly WALL : number
     readonly PLAYER : number
+    readonly EXIT : number
   }
 }
 
@@ -12,6 +13,7 @@ export const Global : GlobalI = {
   objectTypes: {
     NONE: 0,
     WALL: 1,
-    PLAYER: 2
+    PLAYER: 2,
+    EXIT: 3
   }
 };
