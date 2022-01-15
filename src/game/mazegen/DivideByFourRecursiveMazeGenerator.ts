@@ -5,27 +5,27 @@ import {randInt} from "../../model/Fn";
 import {allSame} from "../../model/Fn";
 import {takeUntil} from "../../model/Fn";
 import {isEmpty} from "../../model/Fn";
-import {withArgs} from "../../model/Fn";
+import {callWithArgs} from "../../model/Fn";
 import {randBoolean} from "../../model/Fn";
 import {takeUntilTryTimes} from "../../model/Fn";
 import {Events} from "../../model/events/Events";
 import {DebugDrawEvent} from "../../display/DebugDrawEvent";
+import {rotateRight} from "../../model/Fn";
+import {sortRandom} from "../../model/Fn";
 
 const {WALL, NONE, EXIT} = Global.objectTypes;
 
-type SIDE = 0 | 1 | 2 | 3;
+type Side = 0 | 1 | 2 | 3;
+function sideToStr(s : Side) {
+  switch (s) {
+    case LEFT: return "LEFT";
+    case RIGHT: return "RIGHT";
+    case TOP: return "TOP";
+    case BOTTOM: return "BOTTOM";
+  }
+}
 
 const LEFT = 0, TOP = 1, RIGHT = 2, BOTTOM = 3;
-
-function randHIdx(f : Rect) : number | undefined {
-  return f.h < 3 ? undefined
-                 : randInt(f.y1 + 1, f.y2);
-}
-
-function randVIdx(f : Rect) : number | undefined {
-  return f.w < 3 ? undefined
-                 : randInt(f.x1 + 1, f.x2);
-}
 
 export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
   protected firstDivision() : void {
@@ -33,7 +33,8 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
   }
 
   protected nextDivision(f : Rect) : void {
-    if (f.w === 2 && f.h === 2) {
+    if (f.w < 4 && f.h < 4) {
+      this.drawOnly(f);
       return;
     }
     let vIdx = this.takeVIdx(f);
@@ -56,7 +57,7 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
   }
 
   private takeVIdx(f : Rect) : number | undefined {
-    return takeUntilTryTimes(() => randVIdx(f), (idx) => {
+    return takeUntilTryTimes(() => this.randVIdx(f), (idx) => {
       if (isEmpty(idx)) {
         return true;
       }
@@ -66,8 +67,13 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
     }, 5);
   }
 
+  private randVIdx(f : Rect) : number | undefined {
+    return f.w < 3 ? undefined
+                   : randInt(f.x1 + 1, f.x2);
+  }
+
   private takeHIdx(f : Rect) : number | undefined {
-    return takeUntilTryTimes(() => randHIdx(f), (idx) => {
+    return takeUntilTryTimes(() => this.randHIdx(f), (idx) => {
       if (idx === undefined) {
         return true;
       }
@@ -75,6 +81,11 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
       let b = this.field.get(f.x2 + 1, idx);
       return a === WALL && b === WALL;
     }, 5);
+  }
+
+  private randHIdx(f : Rect) : number | undefined {
+    return f.h < 3 ? undefined
+                   : randInt(f.y1 + 1, f.y2);
   }
 
   private splitV(f : Rect, idx : number) : [Rect, Rect] {
@@ -100,7 +111,7 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
     let bottom = f.y2;
     this.fillV(f, vertMiddle);
     this.fillH(f, horMiddle);
-    let closeSide = randInt(0, 4) as SIDE;
+    let closeSide = randInt(0, 4) as Side;
     if (closeSide != LEFT) {
       let hole = randInt(left, vertMiddle);
       this.field.set(hole, horMiddle, NONE);
@@ -136,4 +147,106 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
       this.field.set(x, idx, WALL);
     }
   }
+
+  private drawOnly(f : Rect) : boolean {
+    f.debugDraw("#f0f");
+    if (f.w < 2 || f.h < 2) {
+      return;
+    }
+    this.fill2x2(f.x1, f.y1);
+    if (f.w === 3) {
+      this.fill2x2(f.x1 + 1, f.y1);
+    }
+    if (f.h === 3) {
+      this.fill2x2(f.x1, f.y1 + 1);
+    }
+    if (f.w === 3 && f.h === 3) {
+      this.fill2x2(f.x1 + 1, f.y1 + 1);
+    }
+  }
+
+  private fill2x2(x : number, y : number) : void {
+    for (let templatesPack of templates2x2) {
+      for (let template of sortRandom(templatesPack)) {
+        if (this.isGoodTemplate(x, y, template)) {
+          this.drawTemplate(x, y, template);
+          return;
+        }
+      }
+    }
+  }
+
+  private isGoodTemplate(x : number, y : number, template : number[][]) : boolean {
+    for (let i = 0; i < 2; i++) {
+      for (let j = 0; j < 2; j++) {
+        let e = template[i][j];
+        if (e === WALL && this.hasAnyNonWallNeighbour(x + i, y + j, templates2x2CheckSides[i][j])) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private drawTemplate(x : number, y : number, template : number[][]) : void {
+    for (let i = 0; i < template.length; i++) {
+      for (let j = 0; j < template[i].length; j++) {
+        this.field.set(x + i, j + y, template[i][j]);
+      }
+    }
+  }
+
+  private hasAnyNonWallNeighbour(x : number, y : number, sides : Side[]) : boolean {
+    for (let s of sides) {
+      if (this.hasNonWallNeighbour(x, y, s)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private hasNonWallNeighbour(x : number, y : number, side : Side) : boolean {
+    if (side === TOP) {
+      y--;
+    } else if (side === BOTTOM) {
+      y++;
+    } else if (side === LEFT) {
+      x--;
+    } else if (side === RIGHT) {
+      x++;
+    }
+    return this.field.get(x, y) !== WALL;
+  }
 }
+
+let templates2x2CheckSides = [
+  [ // x1
+    [LEFT, TOP],    // y1
+    [LEFT, BOTTOM]    // y2
+  ],
+  [ // x2
+    [TOP, RIGHT], // y1
+    [BOTTOM, RIGHT] // y2
+  ]
+] as Side[][][];
+
+let templates2x2 = [
+  [
+    [WALL, WALL],
+    [NONE, WALL]
+  ],
+  [
+    [WALL, WALL],
+    [NONE, NONE]
+  ],
+  [
+    [WALL, NONE],
+    [NONE, NONE]
+  ]
+].map(arr => {
+  let _1 = arr;
+  let _2 = rotateRight(_1);
+  let _3 = rotateRight(_2);
+  let _4 = rotateRight(_3);
+  return [_1, _2, _3, _4];
+});

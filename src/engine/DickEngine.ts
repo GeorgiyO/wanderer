@@ -2,15 +2,32 @@ import {Engine} from "./Engine";
 import {UpdateFn} from "./Engine";
 import {RenderFn} from "./Engine";
 
+const now = () => window.performance.now();
+
 export class DickEngine implements Engine {
 
   private readonly update : UpdateFn = undefined;
   private readonly render : RenderFn = undefined;
   private readonly timeStep : number = undefined;
 
-  constructor(update : UpdateFn, render : RenderFn, timeStep : number) {
-    this.update = update;
-    this.render = render;
+  constructor(update : UpdateFn, render : RenderFn, timeStep : number, withLogging : boolean) {
+    if (withLogging) {
+      this.update = () => {
+        let updateTime = now();
+        update();
+        updateTime = now() - updateTime;
+        console.log(`update time: ${updateTime / timeStep}`)
+      }
+      this.render = () => {
+        let renderTime = now();
+        render();
+        renderTime = now() - renderTime;
+        console.log(`render time: ${renderTime / timeStep}`)
+      }
+    } else {
+      this.update = update;
+      this.render = render;
+    }
     this.timeStep = timeStep;
   }
 
@@ -19,6 +36,8 @@ export class DickEngine implements Engine {
   private accumulatedTime = 0;
   private updated = false;
   private running = false;
+
+  private tick = 1;
 
   private run(timeStamp : number) : void {
     this.accumulatedTime += timeStamp - this.time;
@@ -42,6 +61,11 @@ export class DickEngine implements Engine {
     if (this.running) {
       this.startLoop();
     }
+
+    if (this.tick % 60 === 0) {
+      this.tick = 1;
+    }
+    this.tick++;
   }
 
   private runFn : (ts : number) => void = this.run.bind(this);

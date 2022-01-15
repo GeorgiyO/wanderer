@@ -7,13 +7,13 @@ import {DickDisplay} from "./display/DickDisplay";
 import {Global} from "./model/Global";
 import {Events} from "./model/events/Events";
 import {DebugDrawEvent} from "./display/DebugDrawEvent";
-import {withArgs} from "./model/Fn";
+import {callWithArgs} from "./model/Fn";
 import {point} from "./model/Point";
 
 let i = 0;
 
-const width = 40;
-const height = 40;
+const width = 100;
+const height = 100;
 
 const game = new DickGame(width, height, point(2, 0), point(width - 2, height - 1));
 const display = new DickDisplay(document.getElementById("mainCanvas") as HTMLCanvasElement, width, height);
@@ -25,9 +25,13 @@ Events.subscribe(DebugDrawEvent, ({x, y, width, height, color}) => {
   debugDrawOrder.push(() => display.drawRect(x, y, width, height, color));
 });
 
+let updates : (() => void)[] = [];
+
 let act = () => {
-  debugDrawOrder = [];
-  game.update();
+  updates.push(() => {
+    debugDrawOrder = [];
+    game.update();
+  });
 };
 
 controller.up.bindDown(act);
@@ -40,6 +44,8 @@ const engine : Engine = new DickEngine(
       console.log(i / 60);
     }
     controller.handleActiveInputs();
+    updates.forEach(callWithArgs());
+    updates = [];
   },
   () => {
     display.fillColor("white");
@@ -54,10 +60,11 @@ const engine : Engine = new DickEngine(
         display.drawPoint(x, y, "red");
       }
     });
-    debugDrawOrder.forEach(withArgs());
+    debugDrawOrder.forEach(callWithArgs());
     display.render();
   },
-  1000 / 60
+  1000 / 60,
+  false
 );
 
 ["keydown", "keyup"].forEach(
