@@ -3,8 +3,7 @@ import {ButtonInputInfo} from "./Controller";
 
 export class DickController implements Controller {
 
-  keyDownUp = (event : KeyboardEvent) => {
-    console.log(event.type);
+  keyDownUp(event : KeyboardEvent) {
     let btn = this.findButton(event.key);
 
     if (btn === undefined) {
@@ -24,13 +23,15 @@ export class DickController implements Controller {
         return this.down;
       case "ArrowLeft":
         return this.left;
+      case "Enter":
+        return this.enter;
     }
   }
 
   handleActiveInputs() : void {
     this.all.forEach(btn => {
       if (btn.active) {
-        btn.downFn();
+        btn.onActive();
       }
     });
   }
@@ -39,28 +40,30 @@ export class DickController implements Controller {
   down = new DickInput();
   left = new DickInput();
   right = new DickInput();
+  enter = new DickInput();
 
-  all = [this.up, this.down, this.left, this.right];
+  all = [this.up, this.down, this.left, this.right, this.enter];
 }
 
 class DickInput implements ButtonInputInfo {
 
-  downFn = () => {};
-  activeFn = () => {};
+  onActive = () => {};
+  onDown = () => {};
   active = false;
 
-  set(active : boolean) {
-    if (active) {
-      this.activeFn();
+  set(activate : boolean) {
+    if (activate) {
+      this.onDown();
     }
-    this.active = active;
-  }
-
-  bindDown(fn : () => void) : void {
-    this.downFn = fn;
+    this.active = activate;
   }
 
   bindActive(fn : () => void) : void {
-    this.activeFn = fn;
+    console.log(fn.toString());
+    this.onActive = fn;
+  }
+
+  bindOnDown(fn : () => void) : void {
+    this.onDown = fn;
   }
 }

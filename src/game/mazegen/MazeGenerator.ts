@@ -21,11 +21,13 @@ export abstract class MazeGenerator {
     this.stack.put(() => this.firstDivision());
   }
 
-  nextFuckingWall() : void {
+  nextFuckingWall() : boolean {
     let fn = this.stack.get();
     if (fn !== undefined) {
       fn();
+      return true;
     }
+    return false;
   }
 
   protected abstract firstDivision() : void;

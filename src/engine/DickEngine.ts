@@ -1,32 +1,35 @@
 import {Engine} from "./Engine";
-import {UpdateFn} from "./Engine";
-import {RenderFn} from "./Engine";
+import {Updatable} from "./Engine";
+import {Drawable} from "./Engine";
 
 const now = () => window.performance.now();
 
 export class DickEngine implements Engine {
 
-  private readonly update : UpdateFn = undefined;
-  private readonly render : RenderFn = undefined;
+  private readonly update : () => void = undefined;
+  private readonly render : () => void = undefined;
   private readonly timeStep : number = undefined;
 
-  constructor(update : UpdateFn, render : RenderFn, timeStep : number, withLogging : boolean) {
+  constructor(updatable : Updatable,
+              drawable : Drawable,
+              timeStep : number = 1 / 60,
+              withLogging : boolean = false) {
     if (withLogging) {
       this.update = () => {
         let updateTime = now();
-        update();
+        updatable.update();
         updateTime = now() - updateTime;
-        console.log(`update time: ${updateTime / timeStep}`)
-      }
+        console.log(`update time: ${updateTime / timeStep}`);
+      };
       this.render = () => {
         let renderTime = now();
-        render();
+        drawable.draw();
         renderTime = now() - renderTime;
-        console.log(`render time: ${renderTime / timeStep}`)
-      }
+        console.log(`render time: ${renderTime / timeStep}`);
+      };
     } else {
-      this.update = update;
-      this.render = render;
+      this.update = updatable.update.bind(updatable);
+      this.render = drawable.draw.bind(drawable);
     }
     this.timeStep = timeStep;
   }

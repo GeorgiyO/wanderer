@@ -30,9 +30,6 @@ export class DivideByTwoRecursiveMazeGenerator extends MazeGenerator {
 
   protected nextDivision(field : Rect, splitSide : Side) : void {
     let splitIdx : number;
-
-    field.debugDraw("#0f04");
-
     let i = 0;
     while (true) {
       if (i++ === 10) return;
@@ -73,7 +70,6 @@ export class DivideByTwoRecursiveMazeGenerator extends MazeGenerator {
 
     newFields.forEach(f => {
       if ((splitSide === HORIZONTAL ? f.w : f.h) > 2) {
-        f.debugDraw("#f004");
         this.stack.put(() => this.nextDivision(f, f.w > f.h ? VERTICAL : HORIZONTAL));
       }
     });

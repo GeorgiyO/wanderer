@@ -1,3 +1,5 @@
+import exp from "constants";
+
 const {ceil, floor, random} = Math;
 
 export const callWithArgs = <T extends any[], R>
@@ -22,11 +24,20 @@ export function isPresent<T>(value : T) : boolean {
   return value !== undefined;
 }
 
-export function isEmpty<T>(value : T) : boolean {
+export function isNone<T>(value : T) : boolean {
   return value === undefined || value === null;
 }
 
-export function takeUntilTryTimes<T>(consumer : () => T, predicate : (t : T) => boolean, times : number) : T {
+export function takeUntilTryTimes<T>
+(consumer : () => T, predicate : (t : T) => boolean, times : number) : T | undefined {
+  let res : T;
+  do {
+    res = consumer();
+    if (times-- < 0) {
+      return undefined;
+    }
+  } while (!predicate(res));
+  return res;
   return takeUntil(consumer, (v) => {
     return predicate(v) || times-- < 0;
   });
@@ -89,4 +100,14 @@ export function sortRandom<T>(arr : T[]) : T[] {
                    : _a === _b ? 0
                                : -1;
   });
+}
+
+export function memoize<A extends any[], T>(fn : (...args : A) => T) : (...args : A) => T {
+  let cache : T;
+  return (...args : A) => {
+    if (cache === undefined) {
+      cache = fn(...args);
+    }
+    return cache;
+  };
 }

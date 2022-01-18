@@ -8,17 +8,18 @@ export class DickGame {
   public readonly field : Field;
   public readonly player : Player;
 
-  private readonly mazeGen : MazeGenerator;
+  private mazeGen : MazeGenerator;
 
-  constructor(width : number, height : number, a : Point, b : Point) {
+  constructor(width : number, height : number, private a : Point, private b : Point) {
     this.field = new Field(width, height);
-    this.player = new Player(0, 0);
-    this.mazeGen = new DivideByFourRecursiveMazeGenerator(this.field, a, b);
+  }
+
+  nextLevel() {
+    this.mazeGen = new DivideByFourRecursiveMazeGenerator(this.field, this.a, this.b);
+    while (this.mazeGen.nextFuckingWall()) {
+    }
   }
 
   update() {
-    // for (let i = 0; i < 10; i++) {
-      this.mazeGen.nextFuckingWall();
-    // }
   }
 }

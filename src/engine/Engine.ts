@@ -3,6 +3,16 @@ export type Engine = {
   stop() : void
 }
 
-export type UpdateFn = () => void;
+declare global {
+  interface Factory {
+    engine() : Engine;
+  }
+}
 
-export type RenderFn = () => void;
+export type Updatable = {
+  update() : void
+};
+
+export type Drawable = {
+  draw() : void
+};

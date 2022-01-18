@@ -2,29 +2,14 @@ import {MazeGenerator} from "./MazeGenerator";
 import {Global} from "../../model/Global";
 import {Rect} from "../../model/Rect";
 import {randInt} from "../../model/Fn";
-import {allSame} from "../../model/Fn";
-import {takeUntil} from "../../model/Fn";
-import {isEmpty} from "../../model/Fn";
-import {callWithArgs} from "../../model/Fn";
-import {randBoolean} from "../../model/Fn";
+import {isNone} from "../../model/Fn";
 import {takeUntilTryTimes} from "../../model/Fn";
-import {Events} from "../../model/events/Events";
-import {DebugDrawEvent} from "../../display/DebugDrawEvent";
 import {rotateRight} from "../../model/Fn";
 import {sortRandom} from "../../model/Fn";
 
 const {WALL, NONE, EXIT} = Global.objectTypes;
 
 type Side = 0 | 1 | 2 | 3;
-function sideToStr(s : Side) {
-  switch (s) {
-    case LEFT: return "LEFT";
-    case RIGHT: return "RIGHT";
-    case TOP: return "TOP";
-    case BOTTOM: return "BOTTOM";
-  }
-}
-
 const LEFT = 0, TOP = 1, RIGHT = 2, BOTTOM = 3;
 
 export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
@@ -33,12 +18,15 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
   }
 
   protected nextDivision(f : Rect) : void {
+    if (f.w === 2 && f.h === 2) {
+      this.fill2x2(f.x1, f.y1);
+    }
     if (f.w < 4 && f.h < 4) {
       this.drawOnly(f);
       return;
     }
-    let vIdx = this.takeVIdx(f);
-    let hIdx = this.takeHIdx(f);
+    let vIdx = this.takeVSplitIdx(f);
+    let hIdx = this.takeHSplitIdx(f);
     let split : Rect[] = [];
     if (vIdx === undefined && hIdx === undefined) {
       this.nextFuckingWall();
@@ -51,19 +39,16 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
       split = this.splitBoth(f, vIdx, hIdx);
     }
     split.forEach(r => {
-      r.debugDraw("#ff0");
       this.stack.put(() => this.nextDivision(r));
     });
   }
 
-  private takeVIdx(f : Rect) : number | undefined {
+  private takeVSplitIdx(f : Rect) : number | undefined {
     return takeUntilTryTimes(() => this.randVIdx(f), (idx) => {
-      if (isEmpty(idx)) {
-        return true;
-      }
-      let a = this.field.get(idx, f.y1 - 1);
-      let b = this.field.get(idx, f.y2 + 1);
-      return a === WALL && b === WALL;
+      return isNone(idx) || (
+        !this.isNonWallNeighbour(idx, f.y1, TOP) &&
+        !this.isNonWallNeighbour(idx, f.y2, BOTTOM)
+      );
     }, 5);
   }
 
@@ -72,14 +57,12 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
                    : randInt(f.x1 + 1, f.x2);
   }
 
-  private takeHIdx(f : Rect) : number | undefined {
+  private takeHSplitIdx(f : Rect) : number | undefined {
     return takeUntilTryTimes(() => this.randHIdx(f), (idx) => {
-      if (idx === undefined) {
-        return true;
-      }
-      let a = this.field.get(f.x1 - 1, idx);
-      let b = this.field.get(f.x2 + 1, idx);
-      return a === WALL && b === WALL;
+      return isNone(idx) || (
+        !this.isNonWallNeighbour(f.x1, idx, LEFT) &&
+        !this.isNonWallNeighbour(f.x2, idx, RIGHT)
+      );
     }, 5);
   }
 
@@ -91,7 +74,6 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
   private splitV(f : Rect, idx : number) : [Rect, Rect] {
     this.fillV(f, idx);
     let hole = randInt(f.y1, f.y2 + 1);
-    DebugDrawEvent(idx, hole, 1, 1, "#0ff");
     this.field.set(idx, hole, NONE);
     return f.splitVertical(idx);
   }
@@ -99,7 +81,6 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
   private splitH(f : Rect, idx : number) : [Rect, Rect] {
     this.fillH(f, idx);
     let hole = randInt(f.x1, f.x2 + 1);
-    DebugDrawEvent(hole, idx, 1, 1, "#0ff");
     this.field.set(hole, idx, NONE);
     return f.splitHorizontal(idx);
   }
@@ -115,22 +96,18 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
     if (closeSide != LEFT) {
       let hole = randInt(left, vertMiddle);
       this.field.set(hole, horMiddle, NONE);
-      DebugDrawEvent(hole, horMiddle, 1, 1, "#0ff");
     }
     if (closeSide != RIGHT) {
       let hole = randInt(vertMiddle, right) + 1;
       this.field.set(hole, horMiddle, NONE);
-      DebugDrawEvent(hole, horMiddle, 1, 1, "#0ff");
     }
     if (closeSide != TOP) {
       let hole = randInt(top, horMiddle);
       this.field.set(vertMiddle, hole, NONE);
-      DebugDrawEvent(vertMiddle, hole, 1, 1, "#0ff");
     }
     if (closeSide != BOTTOM) {
       let hole = randInt(horMiddle, bottom) + 1;
       this.field.set(vertMiddle, hole, NONE);
-      DebugDrawEvent(vertMiddle, hole, 1, 1, "#0ff");
     }
     return f.splitHorizontal(horMiddle)
             .flatMap(f => f.splitVertical(vertMiddle)) as [Rect, Rect, Rect, Rect];
@@ -148,8 +125,15 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
     }
   }
 
+  private _drawOnly(f : Rect) {
+    if (f.w === 2 && f.h === 2) {
+      this.fill2x2(f.x1, f.y1);
+    } else if (f.w < 2 && f.h < 2) {
+      return;
+    }
+  }
+
   private drawOnly(f : Rect) : boolean {
-    f.debugDraw("#f0f");
     if (f.w < 2 || f.h < 2) {
       return;
     }
@@ -198,14 +182,14 @@ export class DivideByFourRecursiveMazeGenerator extends MazeGenerator {
 
   private hasAnyNonWallNeighbour(x : number, y : number, sides : Side[]) : boolean {
     for (let s of sides) {
-      if (this.hasNonWallNeighbour(x, y, s)) {
+      if (this.isNonWallNeighbour(x, y, s)) {
         return true;
       }
     }
     return false;
   }
 
-  private hasNonWallNeighbour(x : number, y : number, side : Side) : boolean {
+  private isNonWallNeighbour(x : number, y : number, side : Side) : boolean {
     if (side === TOP) {
       y--;
     } else if (side === BOTTOM) {

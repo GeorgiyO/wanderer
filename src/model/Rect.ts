@@ -1,7 +1,3 @@
-import {CanvasColor} from "../display/DickDisplay";
-import {Events} from "./events/Events";
-import {DebugDrawEvent} from "../display/DebugDrawEvent";
-
 export class Rect {
   x1 : number;
   x2 : number;
@@ -55,11 +51,6 @@ export class Rect {
       new Rect(x1, x2, y1, i - 1),
       new Rect(x1, x2, i + 1, y2)
     ];
-  }
-
-  debugDraw(color : CanvasColor) : void {
-    let {x1, w, y1, h} = this;
-    DebugDrawEvent(x1, y1, w, h, color);
   }
 }
 

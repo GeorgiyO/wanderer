@@ -1,42 +1,46 @@
-import {callWithArgs} from "../Fn";
+type EventType<T> = (...args : any[]) => T;
+type Callback<T> = (t : T) => void;
 
-export type Subscribtion<E> = {
-  unsubscribe : () => void;
+const subs = new Map<EventType<any>, Set<Callback<any>>>();
+
+function fireEvent<T>(type : EventType<T>, data : T) : void {
+  let s = subs.get(type);
+  s.forEach(f => f(data));
 }
-
-export type Listener<E> = (e : E) => void;
 
 /**
- * function makeEvent() : Event {...}
+ * make events-providers only through Events.make function
+ * name of function must starts with $
  *
- * then Tag<Obj> = makeObj | Obj.prototype
+ * example:
+ * let str = "";
+ *
+ * const $stringChanged = Events.makeFn((s : string) => s);
+ *
+ * let changeString = (s : string) => {
+ *   str = s;
+ *   $stringChanged(s);
+ * }
+ *
+ * Events.subscribe($stringChanged, (s) => console.log(s))
  */
-export type Tag<E> = (...args : any[]) => E;
-
-const subscribers = new Map<object, Set<Listener<any>>>();
-
-function subscribersOf<E>(tag : Tag<E>) : Set<Listener<E>> {
-  let subs = subscribers.get(tag);
-  if (subs === undefined) {
-    subs = new Set();
-    subscribers.set(tag, subs);
-  }
-  return subs;
-}
-
 export const Events = {
-  subscribe<E extends object>(tag : Tag<E>, consumer : Listener<E>) : Subscribtion<E> {
-    const subs = subscribersOf(tag);
-    subs.add(consumer);
-    return {unsubscribe: () => subs.delete(consumer)};
+  subscribe<T>(type : EventType<T>, callback : Callback<T>) : void {
+    let s = subs.get(type);
+    s.add(callback);
   },
-  unsubscribe<E extends object>(tag : Tag<E>, consumer : Listener<E>) : void {
-    subscribersOf(tag).delete(consumer);
+  unsubscribe<T>(type : EventType<T>, callback : Callback<T>) : void {
+    let s = subs.get(type);
+    s.delete(callback);
   },
-  unsubscribeAll<E extends object>(tag : Tag<E>) : void {
-    subscribers.set(tag, new Set());
-  },
-  fire<E extends object>(tag : Tag<E>, event : E) : void {
-    subscribersOf(tag).forEach(callWithArgs(event));
+  make<T extends any[], R, F extends (...args : T) => R>
+  (supplier : F) : F {
+    let fn = ((...args : T) => {
+      let data = supplier(...args);
+      fireEvent(fn, data);
+      return data;
+    });
+    subs.set(fn, new Set());
+    return fn as F;
   }
 };

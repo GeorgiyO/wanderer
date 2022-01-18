@@ -4,10 +4,17 @@ export type Controller = {
   right : ButtonInputInfo
   down : ButtonInputInfo
   left : ButtonInputInfo
+  enter : ButtonInputInfo
   handleActiveInputs : () => void
 }
 
+declare global {
+  interface Factory {
+    controller() : Controller
+  }
+}
+
 export type ButtonInputInfo = {
-  bindDown(fn : () => void) : void
   bindActive(fn : () => void) : void
+  bindOnDown(fn : () => void) : void
 }
